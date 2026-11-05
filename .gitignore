@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.pytest_cache/
+
+# Local editor settings
+.vscode/
+
+# Pi harness stuff
+.pi/
+
+# database objects
+*.duckdb
+
+# Loom tooling/harness output (regenerable locally; not shared via git)
+graphify-out/
+.coverage
+logs/
+target/

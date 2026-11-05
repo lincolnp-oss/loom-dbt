@@ -1,0 +1,122 @@
+name: Release
+
+# OIDC trusted publishing: this workflow fires only on a v* tag
+# push (the owner's publish act) or a manual workflow_dispatch
+# (default target: TestPyPI rehearsal). No PyPI API token exists
+# anywhere: publishing uses OIDC trusted publishing, where GitHub
+# mints a short-lived identity token that PyPI exchanges for a
+# single-use upload credential scoped to this project. The
+# matching "pending publisher" must be registered on PyPI (and on
+# TestPyPI for rehearsals) before the first run, bound to this
+# repository (loom-dbt), this workflow file, and the environment
+# names used below.
+#
+# Pinning policy: first-party actions/* are pinned by major
+# version with Dependabot's github-actions updates enabled;
+# pypa/gh-action-pypi-publish is referenced as @release/v1 per
+# PyPI's own guidance for that action (its maintained release
+# line is the documented exception to SHA pinning).
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Publish target for a manual run"
+        type: choice
+        options:
+          - testpypi
+          - pypi
+        default: testpypi
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-build:
+    name: Verify version, run the suite, build distributions
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      target: ${{ steps.version.outputs.target }}
+    steps:
+      - name: Check out the tagged tree
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Check the version, tag and CHANGELOG agree
+        id: version
+        run: |
+          VERSION="$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            TAG="${GITHUB_REF_NAME#v}"
+            if [ "$TAG" != "$VERSION" ]; then
+              echo "::error::tag v$TAG does not match pyproject version $VERSION"
+              exit 1
+            fi
+            echo "target=pypi" >> "$GITHUB_OUTPUT"
+          else
+            echo "target=${{ inputs.target }}" >> "$GITHUB_OUTPUT"
+          fi
+          # The release needs its own CHANGELOG section (no longer
+          # under "Unreleased"). The heading ships as
+          # "## <version> (Alpha)" and the owner adds the date at
+          # publish time, so any heading line that opens with the
+          # version satisfies the check.
+          if ! grep -qE "^## ${VERSION}([[:space:]]|$)" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no release section for ${VERSION}"
+            exit 1
+          fi
+          echo "version, tag and CHANGELOG agree for $VERSION"
+
+      - name: Sync locked dependencies
+        run: uv sync --locked --group integration
+
+      - name: Run the default suite (coverage floor applies)
+        run: uv run --locked --no-sync python -m pytest --cov -q
+
+      - name: Build the sdist and wheel
+        run: uv build
+
+      - name: Upload the distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish via OIDC trusted publishing
+    needs: verify-and-build
+    runs-on: ubuntu-latest
+    # The environment binds the OIDC claim to the publisher
+    # registered on PyPI/TestPyPI: environment name must match the
+    # registered publisher exactly. Tag pushes publish to real
+    # PyPI; manual runs go where the dispatcher chose.
+    environment: ${{ needs.verify-and-build.outputs.target }}
+    permissions:
+      # The only elevated permission in this workflow: mint the
+      # OIDC identity token for trusted publishing.
+      id-token: write
+    steps:
+      - name: Download the distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to TestPyPI (rehearsal)
+        if: needs.verify-and-build.outputs.target == 'testpypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+      - name: Publish to PyPI
+        if: needs.verify-and-build.outputs.target == 'pypi'
+        uses: pypa/gh-action-pypi-publish@release/v1

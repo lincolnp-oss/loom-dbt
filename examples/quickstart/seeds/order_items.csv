@@ -1,0 +1,6 @@
+id,order_id,customer_id,product_name,quantity
+1,1,1,Widget A,2
+2,1,1,Widget B,1
+3,2,1,Widget A,3
+4,3,2,Widget C,1
+5,4,3,Widget B,2

@@ -1,0 +1,22 @@
+pattern: medallion_bronze
+instances:
+  - name: bronze_customers
+    params:
+      description: Raw customer load, exactly as seeded.
+      inline_source:
+        name: raw
+        table: customers
+
+  - name: bronze_orders
+    params:
+      description: Raw order load, exactly as seeded.
+      inline_source:
+        name: raw
+        table: orders
+
+  - name: bronze_order_items
+    params:
+      description: Raw order-line load, exactly as seeded.
+      inline_source:
+        name: raw
+        table: order_items

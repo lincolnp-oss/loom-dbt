@@ -1,0 +1,12 @@
+version: 2
+models:
+  - name: fct_order_totals
+    description: Hand-written order totals, with practitioner-authored tests.
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: total_quantity
+        tests:
+          - not_null

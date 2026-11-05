@@ -1,0 +1,84 @@
+[project]
+name = "loom-dbt"
+version = "0.1.0"
+description = "Authoring-time dbt generation and model inventory coverage"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Lincoln Phillips", email = "lincolnp.projects@gmail.com" }]
+maintainers = [{ name = "Lincoln Phillips", email = "lincolnp.projects@gmail.com" }]
+keywords = [
+    "dbt",
+    "data-vault",
+    "kimball",
+    "medallion",
+    "code-generation",
+    "data-modeling",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Database",
+    "Topic :: Software Development :: Code Generators",
+]
+
+requires-python = ">=3.11,<3.15"
+dependencies = [
+    "PyYAML>=6.0,<7",
+    "wcwidth>=0.2,<1",
+]
+
+[project.urls]
+Repository = "https://github.com/lincolnp-oss/loom-dbt"
+Documentation = "https://github.com/lincolnp-oss/loom-dbt/blob/main/docs/commands.md"
+Issues = "https://github.com/lincolnp-oss/loom-dbt/issues"
+Changelog = "https://github.com/lincolnp-oss/loom-dbt/blob/main/CHANGELOG.md"
+
+[project.scripts]
+loom = "loom.cli:main"
+
+[dependency-groups]
+dev = [
+    "duckdb>=1.2,<2",
+    "jinja2>=3.1,<4",
+    "pytest>=8.0",
+    "pytest-cov>=7.1.0",
+    "pytest-xdist>=3.5,<4",
+    "sqlglot>=25,<30",
+]
+integration = [
+    "dbt-clickhouse>=1.8,<2",
+    "dbt-duckdb>=1.9,<2",
+    "dbt-postgres>=1.8,<2",
+    { include-group = "dev" },
+]
+
+[build-system]
+requires = ["uv_build>=0.11.6,<0.14"]
+build-backend = "uv_build"
+
+# The distribution is loom-dbt; the import package stays loom.
+[tool.uv.build-backend]
+module-name = "loom"
+
+[tool.pytest.ini_options]
+addopts = "-m 'not integration'"
+pythonpath = ["src"]
+markers = ["integration: optional generated-SQL runtime and installed-consumer smoke tests"]
+
+# Coverage is measured on the full default suite with
+# `python -m pytest --cov -q` (see README's contributing section).
+# The floor applies to that command; subset runs are expected to fall
+# below it and should be run without --cov.
+[tool.coverage.run]
+source = ["loom"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true

@@ -1,0 +1,11 @@
+name: kimball_dimension
+generator: dimension
+defaults:
+  owner: analytics
+  output_subpath: kimball
+required_params:
+  - description
+  - input_models
+  - natural_key
+  - surrogate_key
+  - attribute_columns

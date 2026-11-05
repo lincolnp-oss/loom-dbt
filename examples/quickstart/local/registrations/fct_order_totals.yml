@@ -1,0 +1,11 @@
+name: fct_order_totals
+classification: mart
+description: Total item quantity by order.
+owner: analytics
+tags: [orders, reporting]
+upstream: Order-line-item staging
+depends_on:
+  - stg_order_items
+keys:
+  - order_id
+business_key: order_id

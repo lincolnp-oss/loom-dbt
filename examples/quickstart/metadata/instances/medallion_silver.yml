@@ -1,0 +1,36 @@
+pattern: medallion_silver
+instances:
+  - name: silver_customers
+    params:
+      description: Deduplicated customers, one row per source id.
+      input_models: [bronze_customers]
+      dedup_key: id
+      # Declared columns project explicitly on every dialect; on
+      # dialects without star-exclusion syntax (postgres family)
+      # they are what keeps the internal rn column out.
+      columns:
+        - id
+        - customer_name
+        - customer_email
+
+  - name: silver_orders
+    params:
+      description: Deduplicated orders, one row per source id.
+      input_models: [bronze_orders]
+      dedup_key: id
+      columns:
+        - id
+        - customer_id
+        - order_date
+
+  - name: silver_order_items
+    params:
+      description: Deduplicated order lines, one row per source id.
+      input_models: [bronze_order_items]
+      dedup_key: id
+      columns:
+        - id
+        - order_id
+        - customer_id
+        - product_name
+        - quantity

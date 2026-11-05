@@ -1,0 +1,9 @@
+name: current_link
+generator: link
+defaults:
+  owner: analytics
+  output_subpath: vault
+required_params:
+  - description
+  - input_models
+  - endpoints

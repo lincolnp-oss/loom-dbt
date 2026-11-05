@@ -1,0 +1,10 @@
+pattern: kimball_dimension
+instances:
+  - name: dim_customers
+    params:
+      description: Plain customer dimension read from the vault hub, beside the SCD2 dimension over the same entity. Carries the hub hash as an attribute.
+      input_models: [hub_customer]
+      natural_key: customer_id
+      surrogate_key: customer_sk
+      attribute_columns:
+        - customer_hk

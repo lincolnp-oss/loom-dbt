@@ -1,0 +1,11 @@
+pattern: vault_pit
+instances:
+  - name: pit_customer
+    params:
+      description: Point-in-time resolution over the customer hub's satellites.
+      parent:
+        model: hub_customer
+        key: customer_id
+      satellites:
+        - sat_customer_details
+        - sat_customer_tracking

@@ -1,0 +1,24 @@
+# Named keep-list: tests that must
+# survive every consolidation PR by name - the regression proofs and
+# layer anchors itemised in the structural design. Enforced by
+# test_keep_list.py. Format: <path>::<test name>, or a bare <path>
+# for a layer kept whole.
+tests/test_pit_runtime.py::test_pit_lifecycle_on_duckdb
+tests/test_incremental_hub.py::test_persistent_hub_keeps_new_identities_without_duplicates
+tests/test_link_runtime.py::test_link_build_fails_on_unmatched_key
+tests/test_scd2_runtime.py::test_scd2_dimension_exposes_full_history_with_boolean_is_deleted
+tests/test_contracts_runtime.py::test_opted_in_project_builds_and_wrong_type_fails_preflight
+tests/test_unit_tests_runtime.py::test_generated_unit_tests_pass_under_dbt_build
+tests/test_satellite_runtime.py::test_satellite_lifecycle_on_duckdb
+tests/test_satellite_second_wave_runtime.py::test_multi_active_and_effectivity_lifecycles_on_duckdb
+tests/test_incremental_silver_runtime.py::test_silver_merge_late_older_copy_lifecycle
+tests/test_migration_equivalence.py::test_staging_fit_converts_with_equivalent_output
+tests/test_inline_sources.py::test_inline_source_project_builds_end_to_end
+tests/test_dv_core_runtime.py::test_multi_source_hub_ternary_link_and_its_satellite
+tests/test_dv_core_runtime.py::test_non_historised_link_inserts_each_event_once
+tests/test_medallion.py::test_render_silver_excludes_rn_via_duckdb_star_exclusion
+tests/test_medallion.py::test_render_silver_without_star_exclusion_dialect_raises
+tests/test_incremental_contracts.py
+tests/test_hub_incremental_golden.py
+tests/test_installed_consumer.py
+tests/test_migration_assessment.py

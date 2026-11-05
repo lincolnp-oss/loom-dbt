@@ -1,0 +1,11 @@
+pattern: vault_bridge
+instances:
+  - name: bridge_customer_orders
+    params:
+      description: Customers flattened to their orders for traversal-free reporting.
+      parent:
+        model: hub_customer
+      weighting: equal
+      path:
+        - link: link_order_customer
+          hub: hub_order

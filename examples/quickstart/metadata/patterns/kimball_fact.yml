@@ -1,0 +1,10 @@
+name: kimball_fact
+generator: fact
+defaults:
+  owner: analytics
+  output_subpath: kimball
+required_params:
+  - description
+  - input_models
+  - dimension_keys
+  - measure_columns

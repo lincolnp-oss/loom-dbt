@@ -1,0 +1,8 @@
+name: medallion_silver
+generator: silver
+defaults:
+  owner: analytics
+required_params:
+  - description
+  - input_models
+  - dedup_key

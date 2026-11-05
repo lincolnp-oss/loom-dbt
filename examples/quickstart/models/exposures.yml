@@ -1,0 +1,12 @@
+version: 2
+exposures:
+  - name: order_totals_dashboard
+    label: Order Totals Dashboard
+    type: dashboard
+    maturity: low
+    owner:
+      name: Analytics Team
+      email: analytics@example.com
+    depends_on:
+      - ref('fct_order_totals')
+    description: Downstream reporting consumer of the hand-written order totals.

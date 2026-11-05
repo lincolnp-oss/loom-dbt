@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Support guidance
+    url: https://github.com/lincolnp-oss/loom/blob/main/SUPPORT.md
+    about: Where to ask questions and what support covers
+  - name: Command reference
+    url: https://github.com/lincolnp-oss/loom/blob/main/docs/commands.md
+    about: Per-command purpose, parameters, outputs and examples

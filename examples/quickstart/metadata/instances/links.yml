@@ -1,0 +1,36 @@
+pattern: current_link
+instances:
+  - name: link_order_customer
+    params:
+      description: Current order-to-customer relationships.
+      input_models: [stg_order_items]
+      endpoints:
+        - hub: hub_order
+          key: order_id
+        - hub: hub_customer
+          key: customer_id
+
+  - name: link_order_customer_product
+    params:
+      description: Ternary order-to-customer-to-product relationships (n-ary link).
+      input_models: [stg_order_items]
+      endpoints:
+        - hub: hub_order
+          key: order_id
+        - hub: hub_customer
+          key: customer_id
+        - hub: hub_product
+          key: product_name
+
+  - name: link_order_item_events
+    params:
+      description: Order-line events as a non-historised link - each order item is an immutable event carrying its quantity.
+      input_models: [stg_order_items]
+      endpoints:
+        - hub: hub_order
+          key: order_id
+        - hub: hub_product
+          key: product_name
+      variant: non_historised
+      dependent_child_key: order_item_id
+      payload_columns: [quantity]

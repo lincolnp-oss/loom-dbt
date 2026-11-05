@@ -1,0 +1,10 @@
+name: vault_satellite
+generator: satellite
+defaults:
+  owner: analytics
+  output_subpath: vault
+required_params:
+  - description
+  - parent
+  - input_models
+  - record_source

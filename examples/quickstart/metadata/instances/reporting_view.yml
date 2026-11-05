@@ -1,0 +1,21 @@
+pattern: reporting_view
+instances:
+  - name: vw_customer_orders
+    params:
+      description: Reporting view over the normalized tables, joined explicitly on customer_id.
+      input_models:
+        - n_customers
+        - n_orders
+      joins:
+        - model: n_orders
+          on:
+            - customer_id
+      select_columns:
+        - source: n_customers.customer_id
+          alias: customer_id
+        - source: n_customers.customer_name
+          alias: customer_name
+        - source: n_orders.order_id
+          alias: order_id
+        - source: n_orders.order_date
+          alias: order_date

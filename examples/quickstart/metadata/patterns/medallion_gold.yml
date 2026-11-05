@@ -1,0 +1,8 @@
+name: medallion_gold
+generator: gold
+defaults:
+  owner: analytics
+required_params:
+  - description
+  - input_models
+  - aggregation

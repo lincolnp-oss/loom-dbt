@@ -1,0 +1,18 @@
+# Dependabot version updates. Security updates are
+# enabled separately in the repo's Settings > Security. Nothing
+# here auto-merges: every update arrives as a PR the owner reviews
+# and merges under the normal rule.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      dev-tools:
+        patterns:
+          - "*"

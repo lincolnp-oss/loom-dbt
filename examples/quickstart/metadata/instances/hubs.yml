@@ -1,0 +1,13 @@
+pattern: current_hub
+instances:
+  - name: hub_customer
+    params:
+      description: Stable customer identity table.
+      input_models: [stg_customers]
+      business_key: customer_id
+
+  - name: hub_order
+    params:
+      description: Stable order identity table.
+      input_models: [stg_orders]
+      business_key: order_id

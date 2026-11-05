@@ -1,0 +1,59 @@
+name: Bug report
+description: Report a reproducible problem with Loom
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please reduce the problem to a minimal
+        synthetic example, and remove credentials, private relation
+        names, data rows and local paths before submitting.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+    validations:
+      required: true
+  - type: input
+    id: loom-version
+    attributes:
+      label: Loom version
+      description: Output of `loom --version`
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Python version, dbt version and adapter, OS and shell
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command
+      description: The exact `loom` command you ran
+    validations:
+      required: true
+  - type: textarea
+    id: expected-actual
+    attributes:
+      label: Expected vs actual behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: The smallest metadata/manifest/example that reproduces it, plus any error output
+    validations:
+      required: true
+  - type: checkboxes
+    id: hygiene
+    attributes:
+      label: Hygiene
+      options:
+        - label: I removed credentials, private relation names, data rows and local paths from this report
+          required: true

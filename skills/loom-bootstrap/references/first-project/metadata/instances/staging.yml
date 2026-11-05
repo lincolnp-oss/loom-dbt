@@ -1,0 +1,29 @@
+pattern: staging
+instances:
+  - name: stg_customers
+    params:
+      description: Customer staging from raw seed data.
+      source_ref:
+        name: raw
+        table: customers
+      columns:
+        - source: id
+          alias: customer_id
+        - source: customer_name
+          alias: customer_name
+        - source: customer_email
+          alias: customer_email
+
+  - name: stg_orders
+    params:
+      description: Order staging from raw seed data.
+      source_ref:
+        name: raw
+        table: orders
+      columns:
+        - source: id
+          alias: order_id
+        - source: customer_id
+          alias: customer_id
+        - source: order_date
+          alias: order_date

@@ -1,0 +1,21 @@
+pattern: slowly_changing
+instances:
+  - name: dim_customers_scd2
+    params:
+      description: Customer dimension with history tracking.
+      input_models: [stg_customers]
+      business_key: customer_id
+      tracked_columns:
+        - customer_name
+        - customer_email
+  - name: dim_customers_scd6
+    params:
+      description: Customer dimension, Type 6 hybrid (history plus current and previous name).
+      input_models: [stg_customers]
+      business_key: customer_id
+      tracked_columns:
+        - customer_name
+        - customer_email
+      variant: type_6
+      previous_value_columns:
+        - customer_name

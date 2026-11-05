@@ -1,0 +1,9 @@
+name: loom_quickstart
+version: '1.0.0'
+config-version: 2
+profile: loom_quickstart
+
+model-paths: ['models']
+seed-paths: ['seeds']
+
+clean-targets: ['target', 'dbt_packages']

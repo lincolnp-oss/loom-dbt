@@ -1,0 +1,12 @@
+version: 2
+models:
+  - name: customer_order_counts
+    description: Hand-written order counts per customer, with practitioner-authored tests.
+    columns:
+      - name: customer_id
+        tests:
+          - unique
+          - not_null
+      - name: order_count
+        tests:
+          - not_null

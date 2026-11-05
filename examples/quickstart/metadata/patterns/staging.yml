@@ -1,0 +1,8 @@
+name: staging
+generator: staging
+defaults:
+  owner: analytics
+required_params:
+  - description
+  - source_ref
+  - columns

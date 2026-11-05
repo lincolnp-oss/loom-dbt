@@ -1,0 +1,9 @@
+name: current_hub
+generator: hub
+defaults:
+  owner: analytics
+  output_subpath: vault
+required_params:
+  - description
+  - input_models
+  - business_key

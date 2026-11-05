@@ -1,0 +1,10 @@
+name: slowly_changing
+generator: scd2_dimension
+defaults:
+  owner: analytics
+  output_subpath: vault
+required_params:
+  - description
+  - input_models
+  - business_key
+  - tracked_columns

@@ -1,0 +1,9 @@
+name: vault_bridge
+generator: bridge
+defaults:
+  owner: analytics
+  output_subpath: vault
+required_params:
+  - description
+  - parent
+  - path

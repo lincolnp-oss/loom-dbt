@@ -1,0 +1,21 @@
+pattern: normalized
+instances:
+  - name: n_customers
+    params:
+      description: Normalized customer entity from staging - a third reading of the same staged sources.
+      input_models: [stg_customers]
+      entity_columns:
+        - customer_id
+      attribute_columns:
+        - customer_name
+        - customer_email
+
+  - name: n_orders
+    params:
+      description: Normalized order entity from staging.
+      input_models: [stg_orders]
+      entity_columns:
+        - order_id
+      attribute_columns:
+        - customer_id
+        - order_date

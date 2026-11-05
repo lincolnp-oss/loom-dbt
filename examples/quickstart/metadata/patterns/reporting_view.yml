@@ -1,0 +1,9 @@
+name: reporting_view
+generator: view
+defaults:
+  owner: analytics
+required_params:
+  - description
+  - input_models
+  - joins
+  - select_columns

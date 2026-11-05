@@ -1,0 +1,9 @@
+name: normalized
+generator: normalized_table
+defaults:
+  owner: analytics
+required_params:
+  - description
+  - input_models
+  - entity_columns
+  - attribute_columns

@@ -1,0 +1,9 @@
+name: vault_pit
+generator: pit
+defaults:
+  owner: analytics
+  output_subpath: vault
+required_params:
+  - description
+  - parent
+  - satellites

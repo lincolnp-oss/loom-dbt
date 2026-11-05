@@ -1,0 +1,8 @@
+loom_first_project:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      path: first_project.duckdb
+      schema: main
+      threads: 1

@@ -1,0 +1,180 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Cancel superseded runs on pull-request refs only: a rebase or
+# fix push makes the previous PR run's results moot. Main-branch
+# runs are never cancelled - each is the arbiter record for a
+# distinct merged state.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Runners: every job runs on GitHub-hosted runners - this is the
+# release state (the public repository has no other fleet). During
+# the Pre-Alpha Adoption Programme CI temporarily ran on the
+# owner's self-hosted fleet to conserve hosted minutes; the
+# programme's re-certification restored hosted runners.
+
+jobs:
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Pull requests run one Python: version-specific breakage
+        # still lands on main's full-matrix run, where a red main
+        # stops the line - nothing ships from a PR directly. The
+        # full matrix also runs on workflow_dispatch as a
+        # pre-release certification.
+        python-version: ${{ fromJSON(github.event_name == 'pull_request' && '["3.12"]' || '["3.11", "3.12", "3.13", "3.14"]') }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Sync locked dependencies
+        run: |
+          uv python install ${{ matrix.python-version }}
+          uv sync --locked --python ${{ matrix.python-version }} --group integration
+      - name: Default test suite with coverage floor
+        run: .venv/bin/pytest --cov -q
+      - name: Build distributions
+        run: uv build
+
+  # Windows is a supported development platform (the README
+  # walkthrough leads with PowerShell and local proof runs there),
+  # so the default suite also runs on Windows. One Python version
+  # bounds the cost; the full matrix stays on Linux.
+  test-windows:
+    name: Tests (Windows, Python 3.14)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Cache uv downloads
+        uses: actions/cache@v6
+        with:
+          path: ~\AppData\Local\uv\cache
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-
+      - name: Install uv
+        shell: pwsh
+        run: |
+          irm https://astral.sh/uv/install.ps1 | iex
+          echo "$HOME\.local\bin" >> $env:GITHUB_PATH
+      - name: Sync locked dependencies
+        run: |
+          uv python install 3.14
+          uv sync --locked --python 3.14 --group integration
+      - name: Default test suite with coverage floor
+        run: .venv/Scripts/pytest --cov -q
+
+  integration:
+    name: dbt runtime integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Sync locked dependencies
+        run: uv sync --locked --group integration
+      - name: Put the venv on PATH
+        # The runtime tests resolve `dbt` via PATH and skip without
+        # it; a skipped integration suite must never read as a pass.
+        run: echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+      - name: Integration tests
+        # pytest-xdist with two workers: the leg is dozens of dbt
+        # subprocess builds, and two workers overlap them without
+        # oversubscribing the runner. The installed-consumer test
+        # runs in its own job below (it needs the warmed wheel
+        # cache).
+        run: >
+          .venv/bin/pytest -m integration -q -n 2
+          --deselect
+          tests/test_installed_consumer.py::test_sdist_rebuilt_wheel_builds_external_dbt_consumer
+
+  installed-consumer:
+    name: Installed-consumer test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Sync locked dependencies
+        run: uv sync --locked --group integration
+      - name: Warm the uv wheel cache
+        # The test installs into isolated environments with
+        # `uv pip install --offline`, which reads wheels from the
+        # uv cache. `uv sync` alone does not populate that cache in
+        # the form offline pip installs read (verified: a fresh-
+        # cache sync leaves pyyaml "not found in the cache"; an
+        # online pip install of the locked requirements fixes it).
+        # The test itself stays offline.
+        run: |
+          uv export --locked --group integration --no-emit-project \
+            --output-file "$RUNNER_TEMP/requirements.txt"
+          uv venv "$RUNNER_TEMP/cache-warm"
+          uv pip install --python "$RUNNER_TEMP/cache-warm/bin/python" \
+            -r "$RUNNER_TEMP/requirements.txt"
+      - name: Installed-consumer test
+        run: >
+          .venv/bin/pytest -m integration -q
+          tests/test_installed_consumer.py
+
+  # DuckDB is the execution-supported dialect, and it runs
+  # in-process - the quickstart leg needs no services and no other
+  # target. Other dialects are generation targets, covered by the
+  # parse layer in the default suite.
+  quickstart:
+    name: Quickstart end-to-end (duckdb)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Sync locked dependencies
+        run: uv sync --locked --group integration
+      - name: Put the venv on PATH
+        run: echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+      - name: Validate, generate, seed and build the quickstart
+        run: |
+          WORK="$(mktemp -d)"
+          cp -r examples/quickstart "$WORK/quickstart"
+          cd "$WORK/quickstart"
+          echo "QS_WORK=$WORK/quickstart" >> "$GITHUB_ENV"
+          LOOM="$GITHUB_WORKSPACE/.venv/bin/loom"
+          DBT="$GITHUB_WORKSPACE/.venv/bin/dbt"
+          "$LOOM" validate --project-dir .
+          "$LOOM" generate --project-dir . --dialect duckdb --write
+          "$DBT" seed --project-dir . --profiles-dir .
+          "$DBT" build --project-dir . --profiles-dir .
+      # dbt's generated data tests pass vacuously on an empty link,
+      # so assert the row count directly.
+      - name: Assert link rows on duckdb
+        run: |
+          cd "$QS_WORK"
+          "$GITHUB_WORKSPACE/.venv/bin/python" - <<'PYEOF'
+          import duckdb
+
+          rows = duckdb.connect("quickstart.duckdb", read_only=True).execute(
+              "SELECT count(*) FROM main.link_order_customer"
+          ).fetchone()[0]
+          assert rows == 4, f"link_order_customer has {rows} rows, expected 4"
+          print(f"link rows OK on duckdb: {rows}")
+          PYEOF

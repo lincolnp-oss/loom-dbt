@@ -1,0 +1,8 @@
+loom_quickstart:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      path: quickstart.duckdb
+      schema: main
+      threads: 1

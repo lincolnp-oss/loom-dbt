@@ -1,0 +1,54 @@
+pattern: vault_satellite
+instances:
+  - name: sat_customer_details
+    params:
+      description: Customer descriptive history, historised from the customer extract.
+      parent:
+        model: hub_customer
+        key: customer_id
+      input_models: [stg_customers]
+      attribute_columns:
+        - customer_name
+        - customer_email
+      record_source: crm
+
+  - name: sat_order_customer_details
+    params:
+      description: Order-line payload carried on the order/customer link.
+      parent:
+        model: link_order_customer
+        endpoints:
+          - hub: hub_order
+            key: order_id
+          - hub: hub_customer
+            key: customer_id
+      input_models: [stg_order_items]
+      attribute_columns:
+        - product_name
+        - quantity
+      record_source: orders
+
+  - name: sat_customer_tracking
+    params:
+      description: Customer appearance and deletion tracking for the customer extract.
+      parent:
+        model: hub_customer
+        key: customer_id
+      input_models: [stg_customers]
+      variant: record_tracking
+      record_source: crm
+
+  - name: sat_order_customer_effectivity
+    params:
+      description: Effectivity windows for order-customer relationships, driven by the order.
+      parent:
+        model: link_order_customer
+        endpoints:
+          - hub: hub_order
+            key: order_id
+          - hub: hub_customer
+            key: customer_id
+      input_models: [stg_orders]
+      variant: effectivity
+      driving_key: order_id
+      record_source: orders

@@ -1,0 +1,13 @@
+pattern: hybrid_mart
+instances:
+  - name: mart_customer_orders
+    params:
+      description: Hybrid mart over the Kimball fact - orders per customer, keyed by the vault customer hash.
+      input_models: [fact_orders]
+      aggregation:
+        group_by:
+          - customer_hk
+        measures:
+          - column: order_hk
+            expression: COUNT(order_hk)
+            alias: order_count

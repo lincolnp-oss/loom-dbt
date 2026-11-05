@@ -1,0 +1,9 @@
+name: one_big_table
+generator: obt
+defaults:
+  owner: analytics
+required_params:
+  - description
+  - input_models
+  - columns
+  - joins

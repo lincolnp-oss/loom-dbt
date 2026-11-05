@@ -1,0 +1,25 @@
+pattern: medallion_gold
+instances:
+  - name: gold_customer_orders
+    params:
+      description: Per-customer order aggregates over the silver layer. Orders join items on customer_id, which fans out, so counts use DISTINCT and the date uses MAX rather than risk double-counted sums.
+      input_models:
+        - silver_order_items
+        - silver_orders
+      joins:
+        - model: silver_orders
+          on:
+            - customer_id
+      aggregation:
+        group_by:
+          - customer_id
+        measures:
+          - column: order_id
+            expression: COUNT(DISTINCT silver_orders.id)
+            alias: order_count
+          - column: quantity
+            expression: COUNT(DISTINCT silver_order_items.id)
+            alias: order_line_count
+          - column: order_date
+            expression: MAX(silver_orders.order_date)
+            alias: last_order_date

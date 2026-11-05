@@ -1,0 +1,12 @@
+name: customer_order_counts
+classification: mart
+description: Number of orders per customer, hand-written over the generated hub and staging models.
+owner: analytics
+tags: [orders, reporting]
+upstream: Customer hub and order staging
+depends_on:
+  - hub_customer
+  - stg_orders
+keys:
+  - customer_id
+business_key: customer_id

@@ -1,0 +1,10 @@
+pattern: kimball_fact
+instances:
+  - name: fact_orders
+    params:
+      description: Factless fact over the vault link - one row per order/customer relationship, keyed by the hub hashes. The vault core feeds the Kimball marts.
+      input_models: [link_order_customer]
+      dimension_keys:
+        - order_hk
+        - customer_hk
+      measure_columns: []

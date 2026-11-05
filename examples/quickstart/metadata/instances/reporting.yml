@@ -1,0 +1,23 @@
+pattern: one_big_table
+instances:
+  - name: obt_order_lines
+    params:
+      description: Wide reporting table over order lines, enriched with the vault hubs' keys and hashes.
+      input_models: [stg_order_items]
+      columns:
+        - order_item_id
+        - product_name
+        - quantity
+      joins:
+        - model: hub_customer
+          on:
+            - customer_id
+          columns:
+            - customer_id
+            - customer_hk
+        - model: hub_order
+          on:
+            - order_id
+          columns:
+            - order_id
+            - order_hk

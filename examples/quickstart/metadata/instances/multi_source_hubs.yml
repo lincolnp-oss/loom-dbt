@@ -1,0 +1,9 @@
+pattern: multi_source_hub
+instances:
+  - name: hub_product
+    params:
+      description: Product identity table, persistent and multi-source - products arrive from order lines and from the product catalog; new products are appended incrementally and existing products are never rewritten.
+      input_models: [stg_order_items, stg_products]
+      business_key: product_name
+      retention: persistent
+      record_source: {stg_order_items: orders, stg_products: catalog}

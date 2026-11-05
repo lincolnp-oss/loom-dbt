@@ -1,0 +1,7 @@
+name: medallion_bronze
+generator: bronze
+defaults:
+  owner: analytics
+required_params:
+  - description
+  - inline_source

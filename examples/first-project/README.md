@@ -1,0 +1,197 @@
+# Loom First Project
+
+The smallest complete Loom project: one source, two staging models, one hub, and one hand-written model - declared once in metadata, generated as plain dbt, and searchable as a single inventory. Work through it in order; each step says what to run, what you should see, and what just happened. When you can say what Loom did here, you have the whole authoring loop - the project's own statement, from the [repository README](../../README.md): **declare, generate, prove, ask.**
+
+For everything this example leaves out - every other paradigm, composed in one project, with dialect evidence - see the [quickstart showcase](../quickstart), which is Loom's conformance project. This example is a tutorial; the showcase is the proof.
+
+## What it contains
+
+```text
+dbt_project.yml         The dbt project (name, model/seed paths)
+profiles.yml            A local DuckDB target
+seeds/                  Synthetic customers (3 rows) and orders (4 rows)
+models/sources.yml      One native dbt source, `raw`, over the two seed tables
+metadata/patterns/      Two reusable pattern definitions: `staging`, `current_hub`
+metadata/instances/     The declared models: two staging instances, one hub instance
+models/customer_order_counts.sql    A hand-written model (Part 2)
+models/customer_order_counts.yml    Practitioner-authored tests for it
+local/registrations/    The hand-written model's inventory registration
+```
+
+Fourteen authored files in total, this README and the `.gitignore` included. Not in the tree (generated, and git-ignored): the staging SQL under `models/_generated/staging/`, `models/hub_customer.sql`, and the generated test/properties YAML under `models/_generated/tests/`.
+
+## Prerequisites
+
+Python 3.11–3.14, Loom installed from this repository, and `dbt-duckdb`. From the repository root:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install . "dbt-duckdb>=1.9,<2"
+Set-Location .\examples\first-project
+```
+
+On macOS or Linux, activate with `. .venv/bin/activate`, install with `python -m pip install . "dbt-duckdb>=1.9,<2"`, and `cd examples/first-project`. No credentials, external data, dbt packages or macros are needed; the database is a local DuckDB file created on the first build. (Installation in more depth: the repository README's Install section.) The `dbt` commands below pass `--profiles-dir .` so they use this example's own `profiles.yml`, wherever your shell's dbt defaults point.
+
+## Part 1 - Declare, generate, prove, ask
+
+### Step 0 - Read the declaration (two minutes, no commands)
+
+Everything Loom will generate is declared in four small files, in two kinds:
+
+- A **pattern definition** (`metadata/patterns/`) names a *generator* and the parameters every instance must supply. `staging.yml` wraps the staging generator; `current_hub.yml` wraps the hub generator. A pattern's `defaults:` supply values shared by its instances - here, `owner: analytics`.
+- An **instance set** (`metadata/instances/`) lists concrete models against one pattern. `staging.yml` declares `stg_customers` and `stg_orders` (rename `id` to `customer_id` / `order_id`, pass the other columns through); `hubs.yml` declares one hub, `hub_customer`, over `stg_customers` keyed on `customer_id`.
+
+One merge rule, stated once because everything else follows from it: a field may live in a pattern's `defaults:` **or** in an instance's `params:` - never both. Loom has no override precedence; a field in both places is a validation error, so shared values go in `defaults:` and per-model values in `params:`.
+
+The staging instances read a **native dbt source**: `models/sources.yml` declares the `raw` source over the two seed tables, the way any dbt project would. Loom generates staging SQL that references it; Loom does not own the source declaration.
+
+### Step 1 - Validate
+
+```sh
+loom validate
+```
+
+```text
+Validated 4 inventory entries.
+```
+
+Four, not three: the inventory counts the three models the metadata *declares for generation* plus the hand-written model's *registration* (`local/registrations/`) - generated and hand-written models are entries in one inventory from the start. Validation checks the metadata before anything is generated: unknown parameters, missing required fields and unresolvable input models all fail here, naming the file, the field and the expected shape.
+
+### Step 2 - Generate, and read what was written
+
+```sh
+loom generate --write
+```
+
+```text
+Generate: loom_first_project (dialect duckdb) - writing
+Wrote: 6 file(s) · Changed: 0 file(s) · Unchanged: 0 file(s)
+Scope: 3 models in scope · properties for 3 models · 1 test file
+  (per-file detail: --verbose)
+```
+
+Six files appear: `models/_generated/staging/stg_customers.sql` and `stg_orders.sql` (renames only), `models/hub_customer.sql`, the hub's generated data tests and each model's catalogue properties under `models/_generated/tests/`. Open `models/hub_customer.sql` and read it: it carries a `-- Generated by Loom` header and below it is **plain SQL** - a hash key over `customer_id` - with no Loom macro or package call inside. (The load timestamp, `__loaded_at`, is on the staging outputs; this hub declares no `record_source`, so it carries no provenance columns of its own.) dbt will run this file without Loom installed; the header is how `loom generate` knows the file is Loom-owned and safe to regenerate (it refuses to overwrite a file without the header unless `--force` is passed).
+
+### Step 3 - Seed, then build
+
+```sh
+dbt seed --profiles-dir .
+dbt build --profiles-dir .
+```
+
+```text
+Done. PASS=2 WARN=0 ERROR=0 SKIP=0 NO-OP=0 REUSED=0 TOTAL=2     (seed)
+Done. PASS=17 WARN=0 ERROR=0 SKIP=0 NO-OP=0 REUSED=0 TOTAL=17   (build)
+```
+
+The seed step is **not optional**: the staging models read dbt sources backed by the seed tables, and dbt creates no seed-to-model edge through a source, so `dbt build` alone fails on a fresh checkout. The build runs the generated staging models, the hub, and the hand-written model from Part 2, plus all tests: the practitioner-authored source tests, the hub's generated tests, and the hand-written model's own tests.
+
+### Step 4 - Prove it still matches
+
+```sh
+loom generate --check
+```
+
+```text
+All 6 generated files are current for dialect: duckdb
+```
+
+`--check` regenerates everything in memory and diffs it against the files on disk: this is the proof that the project still matches what was declared. Edit any generated file by hand and re-run it - the check fails, naming the file. In CI this is the drift gate.
+
+### Step 5 - Ask the project a question
+
+```sh
+loom search customer
+loom coverage
+```
+
+```text
+Search: 15 matches (metadata + manifest)
+Query: customer
+Facets: status: generated 3, registered 1 · kind: test 9, model 4, seed 1, source 1 · generator: staging 2, hub 1 · owner: analytics 4 · paradigm: staging 2, dv 1 · provenance: project 15
+Models:
+  customer_order_counts  registered  mart     analytics  matched: customer
+  hub_customer           generated   hub      analytics  matched: customer
+  stg_customers          generated   staging  analytics  matched: customer
+  stg_orders             generated   staging  analytics  matched: customer
+
+Sources - project (1):
+  raw.customers · matched: customer
+Seeds - project (1):
+  customers · matched: customer
+Tests - project (9):
+  not_null_customer_order_counts_customer_id · matched: customer
+  not_null_customer_order_counts_order_count · matched: customer
+  not_null_hub_customer_customer_hk · matched: customer
+  source_not_null_raw_customers_customer_name · matched: customer
+  source_not_null_raw_customers_id · matched: customer
+  source_not_null_raw_orders_customer_id · matched: customer
+  source_unique_raw_customers_id · matched: customer
+  unique_customer_order_counts_customer_id · matched: customer
+  unique_hub_customer_customer_hk · matched: customer
+```
+
+```text
+Inventory coverage: OK
+Inventory entries: 4 (4 cover a project model)
+
+Missing from inventory (0):
+
+
+Orphan inventory entries (0):
+
+
+By paradigm:
+  dv: 1/1 covered
+  staging: 2/2 covered
+  unspecified: 1/1 covered
+```
+
+Search covers the whole project: the generated models, the hand-written registration and the source the staging models read from the declared metadata, and - because the build has written a manifest, and the manifest is part of the corpus - the seed and the tests dbt knows about. `loom coverage` compares the inventory against that same manifest and confirms every entry covers a project model and no project model is missing from the inventory. Generation is something you do occasionally; this is the surface you use daily, before building a model that already exists.
+
+## Part 2 - The hand-written model (composition)
+
+`models/customer_order_counts.sql` is ordinary practitioner SQL - an order count per customer, joining the generated hub to the generated staging model with plain `ref()`s. Loom did not generate it and will never overwrite it. What makes it a first-class citizen is its registration (`local/registrations/customer_order_counts.yml`): name, description, owner, the models it `depends_on`, its key. That one file is why the model appeared in `validate`, `search` and `coverage` alongside the generated ones.
+
+See what it produced:
+
+```sh
+dbt show --profiles-dir . --inline "select * from {{ ref('customer_order_counts') }} order by customer_id"
+```
+
+| customer_id | order_count |
+| --- | --- |
+| 1 | 2 |
+| 2 | 1 |
+| 3 | 1 |
+
+That join - your SQL over Loom's generated models, all of it in one inventory - is composition at its smallest. The showcase composes *paradigms* the same way (a vault core feeding Kimball marts); nothing new needs learning to follow it, only more generators.
+
+## Part 3 - Add one yourself
+
+Add a second hub, for orders, using only the pattern that already exists. Append this instance to `metadata/instances/hubs.yml`:
+
+```yaml
+  - name: hub_order
+    params:
+      description: Stable order identity table.
+      input_models: [stg_orders]
+      business_key: order_id
+```
+
+Then:
+
+```sh
+loom validate
+loom generate --select hub_order --write
+dbt build --profiles-dir . --select hub_order
+loom search hub_order
+loom generate --check
+```
+
+Expected: `Validated 5 inventory entries.`; one model generated (plus its properties and one test file, `hub_order: order_hk`); the build passes 3 of 3 (the model and its generated tests); search finds `hub_order`; the final check reports all 8 generated files current. No new pattern was needed - a new instance of an existing pattern is the everyday Loom change. (Adding a model that needs a *new source table* is the seed ↔ source ↔ instance trio - the showcase quickstart's README walks that recipe end to end.)
+
+## What this example leaves out
+
+Everything else, deliberately: satellites, links, SCD2, Kimball facts and dimensions, medallion, 3NF, OBT and migration tooling. Each is exercised and composed in the [quickstart showcase](../quickstart) - the second project to read, not the first. The showcase runs end-to-end on DuckDB, the one executed dialect; the other seven dialects are generation-only (parse-checked, not executed).
