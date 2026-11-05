@@ -1,0 +1,5 @@
+name: orders
+classification: model
+description: This table has basic information about orders, as well as some derived
+  facts based on payments
+owner: jaffle_shop

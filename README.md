@@ -1,5 +1,9 @@
 # Loom
 
+[![CI](https://github.com/lincolnp-oss/loom-dbt/actions/workflows/ci.yml/badge.svg)](https://github.com/lincolnp-oss/loom-dbt/actions/workflows/ci.yml) [![PyPI](https://img.shields.io/pypi/v/loom-dbt)](https://pypi.org/project/loom-dbt/) [![Python](https://img.shields.io/pypi/pyversions/loom-dbt)](https://pypi.org/project/loom-dbt/) [![Licence](https://img.shields.io/github/license/lincolnp-oss/loom-dbt)](LICENSE)
+
+Loom is built and maintained by one person; if it saves your team time, consider [sponsoring its development](https://github.com/sponsors/lincolnp-oss).
+
 Loom is an authoring-time CLI for dbt projects: declare each repeated transformation once, and Loom generates the plain dbt models, tests and properties for it, proves they still match what you declared, and lets you search the whole project before you build something that already exists.
 
 ## The 30-second example
@@ -32,7 +36,7 @@ WHERE customer_id IS NOT NULL
 
 That is the loop in miniature: the shape is declared once, the model is generated as plain dbt with no Loom macros to call at build time, and the same declaration is what validation, search and coverage read. The [first project](examples/first-project/README.md) walks the loop end to end.
 
-## Why Loom
+## Why Loom?
 
 Most dbt projects repeat the same modelling shapes until consistency becomes the problem: copies drift, generators demand a permanent place in your build, and nobody can say with confidence what already exists. Loom's answer, in one line per problem:
 
@@ -49,15 +53,35 @@ And the guarantee the table rests on: **what Loom generates is plain dbt, so you
 
 ## What Loom is
 
-Loom is three small ideas and four verbs. A **generator** is the machinery that knows how to build one kind of model (a hub, a staging model, a fact). A **pattern** is a named, reusable configuration of a generator: the shape your project repeats. An **instance** is one concrete model declared against a pattern, supplying only what differs: its name, its input, its key. Hand-written models are not second-class: a short **registration** describes one in the same terms, and it joins the same inventory. The [terminology](docs/terminology.md) draws the exact boundary between Loom authoring and dbt resources.
+Loom is three small ideas and four verbs. A **generator** is the machinery that knows how to build one kind of model (a hub, a staging model, a fact). A **pattern** is a named, reusable configuration of a generator: the shape your project repeats. An **instance set** is a collection of **instances** - concrete models declared against a pattern, supplying only what differs: names, inputs, keys. Hand-written models are not second-class: a **registration** describes one in the same terms, and it joins the same inventory. The [terminology](docs/terminology.md) draws the exact boundary between Loom authoring and dbt resources.
 
 **Declare, generate, prove, ask.** *Declare* the project once, as patterns, instances and registrations held in your own git. *Generate* the models, tests and properties from that declaration. *Prove* the generated files still match the declaration, and that the inventory covers the project. *Ask* the whole project questions (what exists, what is keyed on this, what would this change touch) before building anything. Generation is episodic; asking is the daily habit.
+
+## What generation adds
+
+A generated model is more than its SELECT statement. The generators also produce, from the same declaration and without being asked, the parts of a well-kept model that projects otherwise remember inconsistently or not at all:
+
+- **Columns**: the hash and surrogate keys a paradigm runs on (hub and link hashes, dimension surrogate keys), the `__loaded_at` load timestamp on generated models, and record-source provenance where the generator carries it.
+- **Tests**: each generator emits the dbt data tests its own guarantees rest on, default-on and not suppressible: `unique` and `not_null` on hub and link hashes, `relationships` from every link endpoint hash to its hub, `not_null` on fact dimension keys and measures, the dedup key's `unique` and `not_null` on silver, `not_null` on every gold and mart measure, and their counterparts for the other generators (the full table is in the [architecture document](docs/architecture.md#generated-dbt-tests)). Links additionally carry a guard inside their SQL that fails the build on null, blank or unmatched keys rather than letting a bad join through quietly.
+- **Properties and declarations**: a properties document per generated model carrying its description and column documentation from the declaration, so the catalogue dbt shows is written from the same source as the SQL; the dbt source declaration for any source declared inline in metadata; and, for satellites, the generated current-state view alongside the history table.
+
+The boundary is deliberate: Loom originates only the tests its generators' guarantees require. There are no inferred tests on staging models or raw sources, and no business-specific tests: those stay yours to declare, and tests you declare on an instance (generic tests, and dbt unit tests via the `unit_tests` parameter) are carried into the generated documents verbatim.
+
+## What Loom isn't
+
+- **Not a dbt replacement, and not in your build.** Loom runs at authoring time on your machine; the project it leaves behind is plain dbt that builds without it. There are no Loom macros to install into a dbt project and no runtime component at all.
+- **Not an orchestrator or a warehouse tool.** It schedules nothing, connects to no warehouse to generate (generation needs no warehouse connection), and never runs your models: dbt and your platform do that.
+- **Not an ingestion tool.** It moves no data. Sources, seeds and loading are yours; staging binds the sources you declare.
+- **Not a general-purpose SQL generator.** It generates the shapes its eighteen generators know. Models outside those shapes stay hand-written and are registered, not forced into a fit, and the metadata vocabulary never evaluates arbitrary SQL or Jinja on your behalf.
+- **Not a migration machine.** Conversion is conservative by design: it drafts what provably fits, leaves a named hole where a person must author, and never swaps a model in without an equivalence proof. It will not restructure your project to make it convertible.
+- **Not a data-quality platform.** The tests it emits are paradigm guarantees (above). Business rules, anomaly detection and observability remain your tooling's job, alongside the tests you declare yourself.
+- **Not a hosted service.** It is a local CLI working on files in your git. There is no account, no server and nothing to phone home to.
 
 ## Status and scope
 
 Loom is **Alpha** software, and this section is the honest boundary of what that means today, stated here in full rather than by reference. Its interfaces (the CLI, the metadata format, the generated output) may change between releases, and changes are recorded in the changelog. What does not change is the exit guarantee above: generated output is plain dbt, so no Loom change can strand a built project, and if a second metadata format version is ever introduced it ships only with its migration helper in the same release, so declared metadata is never left without a migration path.
 
-Dialect support has exactly two states. **Executed and supported: DuckDB.** The full lifecycle (generate, seed, build, runtime tests) runs on DuckDB, in CI. **Generation only, parse-checked, not executed: PostgreSQL, ClickHouse, Databricks, Snowflake, BigQuery, Redshift, Azure Synapse.** Loom generates dialect-flavoured SQL for these dialects and the test suite parse-checks every generator's output under each dialect's grammar; nothing is executed on them. That is a syntax guarantee, not adapter compatibility or a support claim, and no other dialect statement anywhere in this documentation should be read as widening it.
+Dialect support has exactly two states. **Executed and supported**: DuckDB. The full lifecycle (generate, seed, build, runtime tests) runs on DuckDB, in CI. **Generation only (parse-checked, not executed)**: PostgreSQL, ClickHouse, Databricks, Snowflake, BigQuery, Redshift, Azure Synapse. Loom generates dialect-flavoured SQL for these dialects and the test suite parse-checks every generator's output under each dialect's grammar; nothing is executed on them. That is a syntax guarantee, not adapter compatibility or a support claim, and no other dialect statement anywhere in this documentation should be read as widening it.
 
 ## Install
 
@@ -75,7 +99,7 @@ There are two ways in, depending on whether the project exists yet. Start from t
 
 **New project:** work through the [first project](examples/first-project/README.md), a complete project in fourteen authored files (one source, two staging models, one hub, one hand-written model) whose README walks the loop step by step: what to run, what you should see, and what just happened. When the loop makes sense, the [quickstart showcase](examples/quickstart/README.md) is the second project: every paradigm composed in one project, with the add-a-model recipe for day-two work. Both examples run locally with no credentials, external data or dbt packages.
 
-**Existing project:** the [adoption playbook](docs/adoption-playbook.md) converts first and registers the rest, and the order is load-bearing. `loom convert` drafts a conversion for every model unknown to Loom that fits a generator, and an authoring draft (inputs pre-wired, the transform left as one named hole) for layered models that fit none; nothing is swapped in until an equivalence proof passes. Then `loom register` inventories the models you are keeping hand-written, making them searchable and coverage-checked, and withdraws them from convert's drafting pool: that withdrawal is why registration comes second, and `--include-registered` re-opens a registered model when its circumstances change. A project may stay hybrid forever, and many should.
+**Existing project:** the [adoption playbook](docs/adoption-playbook.md) converts first and registers the rest, and the order is load-bearing. `loom convert` drafts a conversion for every model unknown to Loom that fits a generator, and an authoring draft (inputs pre-wired, the transform left as one named hole) for layered models that fit none; nothing is swapped in until an equivalence proof passes. Then `loom register` inventories the models you are keeping hand-written, making them searchable and coverage-checked, and withdraws them from convert's drafting pool: that withdrawal is why registration comes second, and `--include-registered` re-opens a registered model when its circumstances change. A project may stay hybrid forever, and many should. The [jaffle-shop example](examples/jaffle-shop/README.md) shows the whole pathway end to end on dbt's canonical example project: what converted, what was registered instead and why, and a verified remodel of the models that stayed hand-written, for teams weighing that trade.
 
 ## What you can model
 
@@ -97,6 +121,21 @@ If a shape is in this table, a generator ships for it today. The architecture li
 
 Day to day, Loom is four commands against one declaration. **Declare:** edit a pattern, instance or registration (small YAML files under `metadata/` and `local/registrations/`), then run `loom validate`, the gate every other step builds on. **Generate:** `loom generate` previews every file it would write, change or leave alone; add `--write` to apply the preview, and `--select <selector>` to scope it to a set of models. **Prove:** `loom generate --check` fails when any generated file no longer matches the declaration, and `loom check` runs validation plus manifest-backed coverage in one gate; both belong in CI. **Ask:** `loom search` finds what already exists before you build it: with no query it prints a project overview, and a query searches the one inventory (declared metadata and the dbt manifest as a single corpus) by name, key, column, input, generator, paradigm, owner or status, with faceted counts over the result set and a detail view when exactly one object matches. Search and the action commands share one selector grammar, so the string that finds a set in search is the same string you pass to `generate` or `check` with `--select`; search may add clearly labelled close matches by shape overlap (and `--similar-to <model>` searches by example), while `--select` on an action command always takes exact matches only.
 
+## Authoring with an AI assistant
+
+Loom is designed to be worked by an AI assistant as much as by hand. The authored surface is small, structured YAML that diffs cleanly; every command reports as JSON as well as text; and generation is deterministic, so an assistant can draft and propose while the same gates a human uses (`validate`, `generate --check`, the equivalence proofs) arbitrate what lands. To make that practical, **six agent skills ship inside the package**: task guidance that teaches an assistant Loom's model, its commands and its working rules, version-matched to the CLI by construction.
+
+| Skill | What it covers |
+| --- | --- |
+| `loom-core` | The shared foundation: the mental model, the responsibility boundary (an assistant drafts and proposes; the practitioner decides), write-safety and the selector grammar |
+| `loom-bootstrap` | Starting a brand-new Loom project from zero |
+| `loom-adoption` | Assessing an existing dbt project: convert what fits, register the rest, prove equivalence before any swap |
+| `loom-authoring` | Extending a project already on Loom: new models, new patterns, tests on existing models |
+| `loom-ask` | Read-only questions over the inventory: what exists, what depends on what, whether something like it already exists |
+| `loom-maintenance` | Keeping an adopted project healthy: drift, coverage findings, diagnosing validate and generate failures |
+
+**Installing and using them.** The skills are ordinary Agent Skills (the open `SKILL.md` format). They are already on disk wherever Loom is installed, inside the package at `loom/.agents/skills/`, and are mirrored at [`skills/`](skills/) in this repository. Install them from there with your agent harness's skill mechanism (for example `npx skills add lincolnp-oss/loom-dbt`), or copy the six directories into your project's `.agents/skills/` folder; then just ask your assistant for the task ("adopt this project", "add a hub for orders", "what already exists like this") and the matching skill loads its procedure. The working rules the skills enforce are the review-first protocol: the assistant reads the project through Loom's JSON outputs rather than guessing its structure, drafts metadata YAML only and never writes generated files, gates every draft on `loom validate`, and leaves `generate` and any overwrite of a practitioner file to you. The full protocol is in the architecture document's [Migration and AI-assisted authoring](docs/architecture.md#migration-and-ai-assisted-authoring) section.
+
 ## Learn more
 
 | Task | Start here |
@@ -111,6 +150,12 @@ Day to day, Loom is four commands against one declaration. **Declare:** edit a p
 | Understand the design | The [architecture document](docs/architecture.md) and the [decision records](docs/adr/README.md) |
 | Diagnose a failure | [Diagnostics and recovery](docs/architecture.md#diagnostics-and-recovery) |
 | Report a problem | [SUPPORT.md](SUPPORT.md) |
+
+## A note on how Loom was built
+
+In the spirit of the section above: Loom itself was developed with substantial AI assistance. Design exploration, implementation, tests and documentation were drafted and iterated with AI agents, under human direction and review, using much the same discipline the bundled skills teach an assistant working in a Loom project: small reviewable changes, explicit decision points, and automated gates that a change must pass before it lands.
+
+The appropriate caveat is that AI involvement is a fact about the process, not a quality claim in either direction. The evidence you can judge is the same evidence any project offers: a test suite of over 1,700 tests runs in CI on Linux and Windows across Python 3.11 to 3.14, together with DuckDB runtime integration tests, an installed-consumer test and an end-to-end quickstart run on every change; the release tree was additionally put through an independent readiness assessment and exercised end to end by a separate local AI agent before publication. And the structural protection does not depend on trusting any of that: what Loom generates is plain dbt, reviewable like any other code, and your project keeps building if you delete Loom entirely. If you find a defect, an issue with a reproduction is the most useful contribution there is.
 
 ## Contributing and licence
 

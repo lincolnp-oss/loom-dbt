@@ -1,0 +1,13 @@
+# Synthesised by `loom convert` - a pattern definition
+# in final form, written once per generator for this assessment
+# run because the project has no pattern for the generator. Its
+# name is final: the instance documents already reference it, and
+# promotion moves this file into metadata/patterns/ unchanged -
+# no rename step. (Renaming it later is ordinary pattern
+# maintenance, not part of promotion.)
+name: staging_pattern
+generator: staging
+required_params:
+- description
+- owner
+- columns

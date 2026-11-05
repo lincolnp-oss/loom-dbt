@@ -1,0 +1,15 @@
+/models/*
+!/models/customers.sql
+!/models/orders.sql
+!/models/schema.yml
+!/models/docs.md
+!/models/overview.md
+/models/_generated/staging/
+/models/_generated/tests/
+/target/
+/logs/
+/dbt_packages/
+/*.duckdb
+/*.duckdb.wal
+/.user.yml
+dbt_internal_packages/
