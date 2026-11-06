@@ -1,0 +1,80 @@
+pattern: staging_pattern
+instances:
+- name: stg_customers
+  params:
+    generic_tests:
+    - test: unique
+      column_name: customer_id
+    - test: not_null
+      column_name: customer_id
+    description: One row per customer from the raw customers seed, with the identifier
+      renamed to customer_id.
+    owner: jaffle_shop
+    inline_source:
+      name: raw
+      schema: main
+      table: raw_customers
+    columns:
+    - source: id
+      alias: customer_id
+    - source: first_name
+    - source: last_name
+- name: stg_orders
+  params:
+    generic_tests:
+    - test: unique
+      column_name: order_id
+    - test: not_null
+      column_name: order_id
+    - test: accepted_values
+      column_name: status
+      kwargs:
+        values:
+        - placed
+        - shipped
+        - completed
+        - return_pending
+        - returned
+    description: One row per order from the raw orders seed, with the identifiers
+      renamed (id to order_id, user_id to customer_id).
+    owner: jaffle_shop
+    inline_source:
+      name: raw
+      schema: main
+      table: raw_orders
+    columns:
+    - source: id
+      alias: order_id
+    - source: user_id
+      alias: customer_id
+    - source: order_date
+    - source: status
+- name: stg_payments
+  params:
+    generic_tests:
+    - test: unique
+      column_name: payment_id
+    - test: not_null
+      column_name: payment_id
+    - test: accepted_values
+      column_name: payment_method
+      kwargs:
+        values:
+        - credit_card
+        - coupon
+        - bank_transfer
+        - gift_card
+    description: One row per payment from the raw payments seed, with the identifier
+      renamed to payment_id and the amount converted from cents to dollars.
+    owner: jaffle_shop
+    inline_source:
+      name: raw
+      schema: main
+      table: raw_payments
+    columns:
+    - source: id
+      alias: payment_id
+    - source: order_id
+    - source: payment_method
+    - expression: amount / 100
+      alias: amount
